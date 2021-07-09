@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mydb
+  namespace: dev
+  labels:
+    app: mydb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mydb
+  serviceName: "mydb"
+  template:
+    metadata:
+      name: mydb
+      labels:
+        app: mydb
+    spec:
+      imagePullSecrets:
+      - name: secret-key
+      containers:
+      - name: mysql-dev
+        image: mysql
+        imagePullPolicy: Always
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-root-password
+                key: MYSQL_ROOT_PASSWORD
+        args: ["--default-authentication-plugin=mysql_native_password"]
+        ports:
+        - containerPort: 3306
+        resources:
+          requests:
+            cpu: 200m
+            memory: 0.5Gi
+        livenessProbe:
+          exec:
+            command: ["mysqladmin", "ping"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: mydb-pv-dev
+          mountPath: /var/lib/mysql
+        - name: mysql-initdb
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mydb-pv-dev
+        persistentVolumeClaim:
+          claimName: mydb-pvc
+      - name: mysql-initdb
+        configMap:
+          name: mysql-initdb-config
+

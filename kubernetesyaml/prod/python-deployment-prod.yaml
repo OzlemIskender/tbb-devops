@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-deploy
+  namespace: prod
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      imagePullSecrets:
+      - name: secret-key
+      containers:
+      - name: myflask-prod
+        image: ozlemiskndr/myflask:latest
+        imagePullPolicy: Always 
+        ports:
+        - containerPort: 5001
+        resources:
+          requests:
+            cpu: 200m
+            memory: 0.5Gi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5001            
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        env:
+        - name: MYSQL_USERNAME
+          value: "root"
+        - name: MYSQL_PASSWORD
+          valueFrom: 
+            secretKeyRef:
+              name: mysql-root-password
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_INSTANCE_NAME
+          value: "myapp"
+        - name: MYSQL_PORT_3306_TCP_ADDR
+          value: "mydb" 
+        - name: MYSQL_PORT_3306_TCP_PORT
+          value: "3306"
+
